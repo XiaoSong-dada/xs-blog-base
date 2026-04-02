@@ -1,0 +1,6 @@
+[submodule "xs-blog-web"]
+	path = xs-blog-web
+	url = https://github.com/XiaoSong-dada/xs-blog-web.git
+[submodule "xs-blog-server"]
+	path = xs-blog-server
+	url = https://github.com/XiaoSong-dada/xs-blog-server.git
