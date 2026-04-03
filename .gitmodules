@@ -4,3 +4,6 @@
 [submodule "xs-blog-server"]
 	path = xs-blog-server
 	url = https://github.com/XiaoSong-dada/xs-blog-server.git
+[submodule "xs-blog-db"]
+	path = xs-blog-db
+	url = https://github.com/XiaoSong-dada/xs-blog-db.git
