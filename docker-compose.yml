@@ -1,0 +1,124 @@
+services:
+  db:
+    build:
+      context: ./xs-blog-db/db
+    container_name: icu.xiaosong.blog.db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-icu_xiaosong_blog}
+      POSTGRES_USER: ${POSTGRES_USER:-icu_xiaosong_blog_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    build:
+      context: ./xs-blog-db/redis
+    container_name: icu.xiaosong.blog.redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  migrate:
+    build:
+      context: ./xs-blog-server
+    container_name: icu.xiaosong.blog.migrate
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: ${DATABASE_URL:-postgresql://icu_xiaosong_blog_user:change_me@db:5432/icu_xiaosong_blog}
+      REDIS_URL: ${REDIS_URL:-redis://:change_me_redis@redis:6379/0}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_DB: ${REDIS_DB:-0}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-change_me_redis}
+      REDIS_PREFIX: ${REDIS_PREFIX:-blog}
+      SECRET_KEY: ${SECRET_KEY:-change_me_secret}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-300}
+      POSTGRES_HOST: ${POSTGRES_HOST:-db}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-icu_xiaosong_blog_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-icu_xiaosong_blog}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-["http://localhost:5173","http://localhost"]}
+      FILE_STORAGE_PATH: ${FILE_STORAGE_PATH:-./storage}
+      EMAIL_HOST: ${EMAIL_HOST:-smtp.qq.com}
+      EMAIL_PORT: ${EMAIL_PORT:-465}
+      EMAIL_CODE: ${EMAIL_CODE:-change_me_mail_auth_code}
+      EMAIL_SENDER: ${EMAIL_SENDER:-example@qq.com}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-xs-blog}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-20}
+      DB_POOL_TIMEOUT: ${DB_POOL_TIMEOUT:-30}
+      DB_POOL_RECYCLE: ${DB_POOL_RECYCLE:-1800}
+      DB_POOL_PRE_PING: ${DB_POOL_PRE_PING:-true}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: alembic upgrade head
+
+  api:
+    build:
+      context: ./xs-blog-server
+    container_name: icu.xiaosong.blog.api
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: ${DATABASE_URL:-postgresql://icu_xiaosong_blog_user:change_me@db:5432/icu_xiaosong_blog}
+      REDIS_URL: ${REDIS_URL:-redis://:change_me_redis@redis:6379/0}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_DB: ${REDIS_DB:-0}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-change_me_redis}
+      REDIS_PREFIX: ${REDIS_PREFIX:-blog}
+      SECRET_KEY: ${SECRET_KEY:-change_me_secret}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-300}
+      POSTGRES_HOST: ${POSTGRES_HOST:-db}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-icu_xiaosong_blog_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-icu_xiaosong_blog}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-["http://localhost:5173","http://localhost"]}
+      FILE_STORAGE_PATH: ${FILE_STORAGE_PATH:-./storage}
+      EMAIL_HOST: ${EMAIL_HOST:-smtp.qq.com}
+      EMAIL_PORT: ${EMAIL_PORT:-465}
+      EMAIL_CODE: ${EMAIL_CODE:-change_me_mail_auth_code}
+      EMAIL_SENDER: ${EMAIL_SENDER:-example@qq.com}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-xs-blog}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-20}
+      DB_POOL_TIMEOUT: ${DB_POOL_TIMEOUT:-30}
+      DB_POOL_RECYCLE: ${DB_POOL_RECYCLE:-1800}
+      DB_POOL_PRE_PING: ${DB_POOL_PRE_PING:-true}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./xs-blog-server/app/storage:/app/storage
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  web:
+    build:
+      context: ./xs-blog-web
+    container_name: icu.xiaosong.blog.web
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "80:80"
+
+volumes:
+  pg_data:
+  redis_data:
+

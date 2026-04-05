@@ -75,3 +75,33 @@ doc/
 ## 总结
 
 `xs-blog-base` 的核心目标是作为小宋博客项目的文档沉淀仓库，集中管理前端与后端的说明资料，让文档归档更清晰、协作更顺畅、后续维护更方便。
+
+## 统一容器启动（主模块入口）
+
+当前仓库已支持在主模块统一编排 `web + api + migrate + db + redis`。
+
+### 快速启动
+
+1. 在仓库根目录准备环境变量（建议从 `.env.example` 复制为 `.env` 后按本机环境修改）。
+2. 在仓库根目录执行：
+
+```bash
+docker compose up --build
+```
+
+### 服务说明
+
+- `db`：PostgreSQL（含初始化脚本）。
+- `redis`：Redis（使用模块内配置文件）。
+- `migrate`：后端 Alembic 迁移任务。
+- `api`：FastAPI 服务。
+- `web`：Vue 构建产物由 Nginx 托管，并反向代理 `/api` 与 `/static`。
+
+### 访问地址
+
+- 前端站点：http://localhost
+- 后端接口：http://localhost:8000
+
+说明：
+
+- 后端子模块内的 `docker-compose.yml` 可用于后端单模块调试，但完整系统联调以主模块根目录的 `docker-compose.yml` 为准。
