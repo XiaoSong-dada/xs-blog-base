@@ -12,7 +12,12 @@ services:
       dockerfile: Dockerfile.dev
     container_name: icu.xiaosong.blog.web.dev
     environment:
-      VITE_BACKEND_API_URL: ${VITE_BACKEND_API_URL:-http://api:8000}
+      VITE_API_REQUEST_MODE: ${VITE_API_REQUEST_MODE:-direct}
+      VITE_BACKEND_API_URL: ${VITE_BACKEND_API_URL:-http://localhost:8000/api}
+      # Ensure pnpm runs non-interactively inside containers (avoid TTY prompt)
+      CI: 'true'
+      # Optional: prevent pnpm from asking to confirm removing node_modules
+      PNPM_CONFIG_CONFIRM_MODULES_PURGE: 'false'
       VITE_STATIC_URL: ${VITE_STATIC_URL:-http://localhost:8000/static/}
       VITE_VDITOR_CDN: ${VITE_VDITOR_CDN:-/vditor}
       VITE_SITE_NAME: ${VITE_SITE_NAME:-xs-blog}
