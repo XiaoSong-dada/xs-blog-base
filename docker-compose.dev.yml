@@ -1,0 +1,41 @@
+services:
+  api:
+    build:
+      context: ./xs-blog-server
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./xs-blog-server:/app
+
+  web:
+    build:
+      context: ./xs-blog-web
+      dockerfile: Dockerfile.dev
+    container_name: icu.xiaosong.blog.web.dev
+    environment:
+      VITE_API_REQUEST_MODE: ${VITE_API_REQUEST_MODE:-direct}
+      VITE_BACKEND_API_URL: ${VITE_BACKEND_API_URL:-http://localhost:8000/api}
+      # Ensure pnpm runs non-interactively inside containers (avoid TTY prompt)
+      CI: 'true'
+      # Optional: prevent pnpm from asking to confirm removing node_modules
+      PNPM_CONFIG_CONFIRM_MODULES_PURGE: 'false'
+      VITE_STATIC_URL: ${VITE_STATIC_URL:-http://localhost:8000/static/}
+      VITE_VDITOR_CDN: ${VITE_VDITOR_CDN:-/vditor}
+      VITE_SITE_NAME: ${VITE_SITE_NAME:-xs-blog}
+      VITE_SITE_ICP: ${VITE_SITE_ICP:-}
+      VITE_SITE_ICP_LINK: ${VITE_SITE_ICP_LINK:-}
+      VITE_GITHUB_REPO: ${VITE_GITHUB_REPO:-xs-blog}
+      VITE_GITHUB_REPO_URL: ${VITE_GITHUB_REPO_URL:-https://github.com/your-name/xs-blog}
+      VITE_BACKEND_BASE_URL: ${VITE_BACKEND_BASE_URL:-http://localhost:8000}
+      VITE_BACKEND_STATIC: ${VITE_BACKEND_STATIC:-static}
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./xs-blog-web:/app
+      - xs_blog_web_node_modules:/app/node_modules
+    command: sh -c "pnpm install && pnpm dev --host 0.0.0.0 --port 5173"
+
+volumes:
+  xs_blog_web_node_modules:

@@ -75,3 +75,67 @@ doc/
 ## 总结
 
 `xs-blog-base` 的核心目标是作为小宋博客项目的文档沉淀仓库，集中管理前端与后端的说明资料，让文档归档更清晰、协作更顺畅、后续维护更方便。
+
+## 统一容器启动（主模块入口）
+
+当前仓库已支持在主模块统一编排 `web + api + migrate + db + redis`。
+
+### 快速启动
+
+1. 在仓库根目录准备环境变量（建议从 `.env.example` 复制为 `.env` 后按本机环境修改）。
+2. 生产模式在仓库根目录执行：
+
+```bash
+docker compose up --build
+```
+
+3. 开发模式如果希望前端使用 Vite 热更新、后端使用 `uvicorn --reload`，执行：
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+
+### 服务说明
+
+- `db`：PostgreSQL（含初始化脚本）。
+- `redis`：Redis（使用模块内配置文件）。
+- `migrate`：后端 Alembic 迁移任务。
+- `api`：FastAPI 服务。
+- `web`：Vue 构建产物由 Nginx 托管，并反向代理 `/api` 与 `/static`。
+
+### 访问地址
+
+- 生产前端站点：http://localhost
+- 开发前端站点：http://localhost:5173
+- 后端接口：http://localhost:8000
+
+说明：
+
+- 后端子模块内的 `docker-compose.yml` 可用于后端单模块调试，但完整系统联调以主模块根目录的 `docker-compose.yml` 为准。
+- `docker-compose.yml` 作为生产基线编排，`docker-compose.dev.yml` 用于开发环境覆盖。
+- 开发模式下前端不会先打包，而是直接运行 Vite 开发服务器，因此你可以实时看到修改效果。
+
+## 服务器部署建议
+
+如果需要把整套源码部署到服务器，推荐使用 Git + 子模块 + 顶层 Compose 的方式，而不是手工复制粘贴源码。
+
+推荐流程：
+
+1. 在服务器上通过 `git clone --recurse-submodules` 拉取主仓库。
+2. 在主仓库根目录创建生产环境 `.env`。
+3. 执行 `docker compose up -d --build` 完成首次部署。
+4. 后续更新时执行：
+
+```bash
+git pull
+git submodule update --init --recursive
+docker compose up -d --build
+```
+
+仓库内已提供脚本模板：
+
+- `scripts/deploy.sh`
+
+更完整的说明见：
+
+- `doc/service/server-deployment-guide.md`
