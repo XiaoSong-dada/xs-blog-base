@@ -83,10 +83,16 @@ doc/
 ### 快速启动
 
 1. 在仓库根目录准备环境变量（建议从 `.env.example` 复制为 `.env` 后按本机环境修改）。
-2. 在仓库根目录执行：
+2. 生产模式在仓库根目录执行：
 
 ```bash
 docker compose up --build
+```
+
+3. 开发模式如果希望前端使用 Vite 热更新、后端使用 `uvicorn --reload`，执行：
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
 ### 服务说明
@@ -99,9 +105,37 @@ docker compose up --build
 
 ### 访问地址
 
-- 前端站点：http://localhost
+- 生产前端站点：http://localhost
+- 开发前端站点：http://localhost:5173
 - 后端接口：http://localhost:8000
 
 说明：
 
 - 后端子模块内的 `docker-compose.yml` 可用于后端单模块调试，但完整系统联调以主模块根目录的 `docker-compose.yml` 为准。
+- `docker-compose.yml` 作为生产基线编排，`docker-compose.dev.yml` 用于开发环境覆盖。
+- 开发模式下前端不会先打包，而是直接运行 Vite 开发服务器，因此你可以实时看到修改效果。
+
+## 服务器部署建议
+
+如果需要把整套源码部署到服务器，推荐使用 Git + 子模块 + 顶层 Compose 的方式，而不是手工复制粘贴源码。
+
+推荐流程：
+
+1. 在服务器上通过 `git clone --recurse-submodules` 拉取主仓库。
+2. 在主仓库根目录创建生产环境 `.env`。
+3. 执行 `docker compose up -d --build` 完成首次部署。
+4. 后续更新时执行：
+
+```bash
+git pull
+git submodule update --init --recursive
+docker compose up -d --build
+```
+
+仓库内已提供脚本模板：
+
+- `scripts/deploy.sh`
+
+更完整的说明见：
+
+- `doc/service/server-deployment-guide.md`

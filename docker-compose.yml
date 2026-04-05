@@ -111,6 +111,16 @@ services:
   web:
     build:
       context: ./xs-blog-web
+      args:
+        VITE_STATIC_URL: ${VITE_STATIC_URL:-/static/}
+        VITE_VDITOR_CDN: ${VITE_VDITOR_CDN:-/vditor}
+        VITE_SITE_ICP: ${VITE_SITE_ICP:-}
+        VITE_SITE_ICP_LINK: ${VITE_SITE_ICP_LINK:-}
+        VITE_SITE_NAME: ${VITE_SITE_NAME:-xs-blog}
+        VITE_GITHUB_REPO: ${VITE_GITHUB_REPO:-xs-blog}
+        VITE_GITHUB_REPO_URL: ${VITE_GITHUB_REPO_URL:-https://github.com/your-name/xs-blog}
+        VITE_BACKEND_BASE_URL: ${VITE_BACKEND_BASE_URL:-}
+        VITE_BACKEND_STATIC: ${VITE_BACKEND_STATIC:-static}
     container_name: icu.xiaosong.blog.web
     depends_on:
       api:
@@ -121,4 +131,5 @@ services:
 volumes:
   pg_data:
   redis_data:
+
 
