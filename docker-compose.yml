@@ -21,8 +21,11 @@ services:
     build:
       context: ./xs-blog-db/redis
     container_name: icu.xiaosong.blog.redis
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-change_me_redis}
     ports:
       - "6379:6379"
+    command: ["sh", "-c", "exec redis-server /usr/local/etc/redis/redis.conf --requirepass \"$REDIS_PASSWORD\""]
     volumes:
       - redis_data:/data
 
@@ -121,6 +124,7 @@ services:
         VITE_GITHUB_REPO_URL: ${VITE_GITHUB_REPO_URL:-https://github.com/your-name/xs-blog}
         VITE_BACKEND_BASE_URL: ${VITE_BACKEND_BASE_URL:-}
         VITE_BACKEND_STATIC: ${VITE_BACKEND_STATIC:-static}
+        VITE_BACKEND_API_URL: ${VITE_BACKEND_API_URL:-}
     container_name: icu.xiaosong.blog.web
     depends_on:
       api:
