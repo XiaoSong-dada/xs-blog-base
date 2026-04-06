@@ -175,6 +175,23 @@ git submodule update --init --recursive
 
 ### 5.4 启动服务
 
+对于服务器或 1Panel 这类面板编排环境，建议把数据库迁移作为独立步骤执行，不要把一次性 `migrate` 容器放进长期运行的生产编排里。
+
+首次部署或本次发版包含数据库变更时，先执行：
+
+```bash
+docker compose run --rm api alembic upgrade head
+```
+
+如果接入的是已有历史库，且还没有 `alembic_version`，先执行：
+
+```bash
+docker compose run --rm api alembic stamp 20260311_0001
+docker compose run --rm api alembic upgrade head
+```
+
+然后再启动长期运行服务：
+
 在主仓库根目录执行：
 
 ```bash
@@ -187,7 +204,6 @@ docker compose up -d --build
 docker compose ps
 docker compose logs -f api
 docker compose logs -f web
-docker compose logs -f migrate
 ```
 
 ## 6. 后续更新的推荐方式
@@ -201,6 +217,7 @@ docker compose logs -f migrate
 ```bash
 git pull
 git submodule update --init --recursive
+docker compose run --rm api alembic upgrade head
 docker compose up -d --build
 ```
 
@@ -215,6 +232,7 @@ docker image prune -f
 ```bash
 git pull
 git submodule update --init --recursive
+docker compose run --rm api alembic upgrade head
 docker compose up -d --build
 docker image prune -f
 ```

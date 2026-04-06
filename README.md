@@ -78,7 +78,7 @@ doc/
 
 ## 统一容器启动（主模块入口）
 
-当前仓库已支持在主模块统一编排 `web + api + migrate + db + redis`。
+当前仓库已支持在主模块统一编排 `web + api + db + redis`，开发模式下会额外启用 `migrate` 自动迁移。
 
 ### 快速启动
 
@@ -99,7 +99,6 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 - `db`：PostgreSQL（含初始化脚本）。
 - `redis`：Redis（使用模块内配置文件）。
-- `migrate`：后端 Alembic 迁移任务。
 - `api`：FastAPI 服务。
 - `web`：Vue 构建产物由 Nginx 托管，并反向代理 `/api` 与 `/static`。
 
@@ -111,9 +110,25 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 说明：
 
+- `docker-compose.yml` 作为生产基线编排，只保留长期运行服务，适合服务器或 1Panel 编排。
+- `docker-compose.dev.yml` 用于开发环境覆盖，会额外启用 `migrate` 服务，并让 `api` 等待迁移成功后再启动。
 - 后端子模块内的 `docker-compose.yml` 可用于后端单模块调试，但完整系统联调以主模块根目录的 `docker-compose.yml` 为准。
-- `docker-compose.yml` 作为生产基线编排，`docker-compose.dev.yml` 用于开发环境覆盖。
 - 开发模式下前端不会先打包，而是直接运行 Vite 开发服务器，因此你可以实时看到修改效果。
+
+### 生产环境数据库迁移
+
+生产环境首次部署或发版包含数据库变更时，先在主仓库根目录执行：
+
+```bash
+docker compose run --rm api alembic upgrade head
+```
+
+如果接入的是一个已经存在表结构、但还没有 Alembic 版本记录的数据库，先执行：
+
+```bash
+docker compose run --rm api alembic stamp 20260311_0001
+docker compose run --rm api alembic upgrade head
+```
 
 ## 服务器部署建议
 
@@ -123,12 +138,14 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 1. 在服务器上通过 `git clone --recurse-submodules` 拉取主仓库。
 2. 在主仓库根目录创建生产环境 `.env`。
-3. 执行 `docker compose up -d --build` 完成首次部署。
-4. 后续更新时执行：
+3. 如需初始化或升级数据库，先执行 `docker compose run --rm api alembic upgrade head`。
+4. 执行 `docker compose up -d --build` 完成首次部署。
+5. 后续更新时执行：
 
 ```bash
 git pull
 git submodule update --init --recursive
+docker compose run --rm api alembic upgrade head
 docker compose up -d --build
 ```
 
