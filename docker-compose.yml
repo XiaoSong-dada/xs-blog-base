@@ -97,6 +97,8 @@ services:
 
 volumes:
   pg_data:
+    name: xs-blog-base-pg-data
   redis_data:
+    name: xs-blog-base-redis-data
 
 
