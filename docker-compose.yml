@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-icu_xiaosong_blog_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PUBLISH_PORT:-5432}:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,11 +20,11 @@ services:
   redis:
     build:
       context: ./xs-blog-db/redis
-    container_name: icu.xiaosong.blog.redis
+    container_name: xs-blog-redis
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-change_me_redis}
     ports:
-      - "6379:6379"
+      - "${REDIS_PUBLISH_PORT:-6379}:6379"
     command: ["sh", "-c", "exec redis-server /usr/local/etc/redis/redis.conf --requirepass \"$REDIS_PASSWORD\""]
     volumes:
       - redis_data:/data
@@ -32,7 +32,7 @@ services:
   api:
     build:
       context: ./xs-blog-server
-    container_name: icu.xiaosong.blog.api
+    container_name: xs-blog-api
     environment:
       PYTHONPATH: /app
       DATABASE_URL: ${DATABASE_URL:-postgresql://icu_xiaosong_blog_user:change_me@db:5432/icu_xiaosong_blog}
@@ -68,7 +68,7 @@ services:
       redis:
         condition: service_started
     ports:
-      - "8000:8000"
+      - "${API_PUBLISH_PORT:-8000}:8000"
     volumes:
       - ./xs-blog-server/app/storage:/app/storage
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
@@ -88,12 +88,12 @@ services:
         VITE_BACKEND_API_URL: ${VITE_BACKEND_API_URL:-}
         VITE_BACKEND_BASE_URL: ${VITE_BACKEND_BASE_URL:-}
         VITE_BACKEND_STATIC: ${VITE_BACKEND_STATIC:-static}
-    container_name: icu.xiaosong.blog.web
+    container_name: xs-blog-web
     depends_on:
       api:
         condition: service_started
     ports:
-      - "80:80"
+      - "${WEB_PUBLISH_PORT:-12888}:80"
 
 volumes:
   pg_data:
