@@ -12,7 +12,7 @@
 
 1. API 层负责路由暴露、权限依赖、请求参数接入。
 2. Service 层承接主要业务编排，是业务定位的第二跳。
-3. Repository 层同时存在同步访问和异步访问两套实现，其中文章域最明显。
+3. Repository 层同时存在同步访问和异步访问两套实现，但文章 API 主链当前已优先收敛到异步 ORM 仓储 ArticleRepoAsync。
 4. Security、Core、DB、Utils 提供横切能力，被多个业务模块复用。
 5. 主入口通过 app/main.py 和 app/api/__init__.py 聚合所有业务路由。
 
@@ -169,7 +169,7 @@ Repository 层扇出：
 Repository 层快速规律：
 
 - 需要确认“数据从哪查、怎么分页、哪张模型表参与”时，优先看 repository。
-- 文章域需要注意同步与异步双轨并存，不是所有文章功能都只在一个 repository 文件里。
+- 文章域虽然仍保留同步 SQL 仓储，但 API 与 service 主链已优先走 article_repo_async.py；同步 repo 更多用于历史兼容与少量遗留路径。
 
 ### 5. 横切层
 
@@ -224,13 +224,13 @@ Utils：
 | --- | --- | --- | --- | --- |
 | 认证登录 | app/api/login.py | app/services/captcha_token_service.py、app/services/auth_service.py | app/repositories/user_repo.py | app/schemas/login.py、app/core/redis.py、app/security/jwt.py、app/security/password.py |
 | 用户注册与资料 | app/api/users.py | app/services/user_service.py | app/repositories/user_repo.py | app/services/email_service.py、app/security/password.py |
-| 文章管理 | app/api/article.py | app/services/article_service.py | app/repositories/article_repo.py、app/repositories/article_repo_async.py | app/schemas/article.py、app/models/article.py |
-| 公开发布文章 | app/api/publish.py | app/services/article_service.py | app/repositories/article_repo.py、app/repositories/article_repo_async.py | 这是文章域的公开读取入口 |
+| 文章管理 | app/api/article.py | app/services/article_service.py | app/repositories/article_repo_async.py | app/schemas/article.py、app/models/article.py；列表、详情、创建、修改、删除、发布现已优先走 AsyncSession + ORM |
+| 公开发布文章 | app/api/publish.py | app/services/article_service.py | app/repositories/article_repo_async.py | 这是文章域的公开读取入口；列表、详情、搜索、浏览量已统一走异步仓储 |
 | 文章点赞 | app/api/article.py | app/services/article_like_service.py | app/repositories/article_like_repo.py | 同时会回查 article_repo_async.py |
 | 文章收藏 | app/api/article.py | app/services/article_bookmark_service.py | app/repositories/article_bookmark_repo.py | 同时会回查 article_repo_async.py |
 | 评论 | app/api/comment.py | app/services/comment_service.py | app/repositories/comment_repo.py | 同时会回查 article_repo_async.py |
 | 标签 | app/api/tag.py | app/services/tag_service.py | app/repositories/tag_repo.py | app/models/tag.py、app/schemas/tag.py |
-| 文件上传与导出 | app/api/file.py | app/services/file_service.py | app/repositories/file_ropo.py | app/services/upload_session_service.py、app/utils/file_utils.py |
+| 文件上传与导出 | app/api/file.py | app/services/file_service.py | app/repositories/file_ropo.py、app/repositories/article_repo_async.py | app/services/upload_session_service.py、app/utils/file_utils.py |
 | 邮件验证码 | app/api/email.py | app/services/email_service.py | app/core/redis.py、app/repositories/user_repo.py | app/utils/email_utils.py |
 | 友情链接 | app/api/friend_link.py | app/services/friend_link_service.py | app/repositories/friend_link_repo.py | app/models/friend_link.py、app/schemas/friend_link.py |
 
@@ -259,7 +259,7 @@ Utils：
 
 | 模块 | 扇入 | 扇出 |
 | --- | --- | --- |
-| app/services/article_service.py | app/api/article.py、app/api/publish.py | article_repo.py、article_repo_async.py、schemas/article.py、db/transaction.py、core/exceptions.py、utils/datetime_utils.py |
+| app/services/article_service.py | app/api/article.py、app/api/publish.py | article_repo_async.py、schemas/article.py、core/exceptions.py、utils/datetime_utils.py |
 | app/services/captcha_token_service.py | app/api/login.py | app/core/redis.py |
 | app/services/article_like_service.py | app/api/article.py | article_like_repo.py、article_repo_async.py |
 | app/services/article_bookmark_service.py | app/api/article.py | article_bookmark_repo.py、article_repo_async.py、core/exceptions.py |
@@ -268,7 +268,7 @@ Utils：
 | app/services/user_service.py | app/api/users.py、app/security/auth.py | user_repo.py、email_service.py、schemas/user.py、security/password.py、db/transaction.py、core/exceptions.py、utils/verification.py |
 | app/services/auth_service.py | app/api/login.py | user_repo.py、security/password.py、security/jwt.py、db/read_connection.py、schemas/user.py |
 | app/services/email_service.py | app/api/email.py、app/services/user_service.py | core/redis.py、user_repo.py、db/read_connection.py、utils/email_utils.py、core/exceptions.py |
-| app/services/file_service.py | app/api/file.py | file_ropo.py、article_repo.py、upload_session_service.py、schemas/file.py、schemas/article.py、db/transaction.py、core/config.py、core/exceptions.py、utils/file_utils.py、utils/pinyin_utils.py、utils/datetime_utils.py |
+| app/services/file_service.py | app/api/file.py | file_ropo.py、article_repo_async.py、upload_session_service.py、schemas/file.py、schemas/article.py、db/transaction.py、core/config.py、core/exceptions.py、utils/file_utils.py、utils/pinyin_utils.py、utils/datetime_utils.py |
 | app/services/friend_link_service.py | app/api/friend_link.py | friend_link_repo.py、schemas/friend_link.py、models/friend_link.py、core/exceptions.py |
 | app/services/upload_session_service.py | app/api/file.py、app/services/file_service.py | core/redis.py、utils/redis_keys.py |
 
@@ -286,9 +286,9 @@ Utils：
 
 当前结构上值得先知道的点：
 
-1. 文章域存在同步和异步两套 repository，排查文章功能时要同时留意 article_repo.py 与 article_repo_async.py。
+1. 文章域仍保留同步和异步两套 repository，但 API 主链已统一收敛到 article_repo_async.py；需要排查线上接口行为时优先看异步仓储。
 2. 用户认证并不只在 auth_service.py，权限链还会经过 security/auth.py 和 security/permissions.py。
-3. 文件导出链并不只在 file_service.py，还依赖 upload_session_service.py 和 Redis 会话状态。
+3. 文件导出链并不只在 file_service.py，还依赖 upload_session_service.py、Redis 会话状态，以及 ArticleRepoAsync 的文章导出查询能力。
 4. 邮件验证码链会被用户注册流程复用，因此 email_service.py 不只是独立邮件接口。
 5. friend_link.py 当前直接 import 了 friend_link_repo.py，但结构上真正业务主链仍应以 friend_link_service.py 为准。
 6. 文件 repository 文件名当前是 file_ropo.py，定位文件上传链路时需要注意这个命名。

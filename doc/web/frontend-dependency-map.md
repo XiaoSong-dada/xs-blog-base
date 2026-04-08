@@ -170,6 +170,7 @@ flowchart TD
 | 关键下游 | `src/components/article/list.vue`、`src/components/article/search.list.vue` |
 | 业务编排 | `src/hook/article/useArticle.ts` |
 | 接口资源 | `src/api/article/article.ts` |
+| 共享契约 | `src/types/main.ts` 中的 `IArticle`、`IArticleSearchList`；列表与搜索列表现在都通过传入的 `author`、`tags` 渲染，不再写死 |
 | 定位建议 | 如果是首页展示或文章列表/搜索问题，先看 `routes.ts`，再看 `views/article/index.vue`，最后进入 `hook/article/useArticle.ts` |
 
 ### 2. 文章详情、阅读、评论、点赞、收藏
@@ -178,9 +179,10 @@ flowchart TD
 | --- | --- |
 | 路由入口 | `/article/:slug` |
 | 页面入口 | `src/views/article/detail.vue` |
-| 关键组件 | `components/article/detail.header.vue`、`components/article/comment.list.vue`、`components/vditor/*` |
+| 关键组件 | `components/article/detail.header.vue`、`components/article/meta.vue`、`components/article/comment.list.vue`、`components/vditor/*` |
 | 业务编排 | `useArticleDetail`、`useAddView`、`useArticleComment`，位于 `src/hook/article/useArticle.ts` |
 | 接口资源 | `src/api/article/article.ts` |
+| 共享契约 | `src/types/main.ts` 中的 `IArticleMeta`；详情头部作者也改为由上游数据传入，不再本地写死 |
 | 定位建议 | 详情页相关改动优先从 `detail.vue` 进入，它把内容渲染、目录、评论链路都挂到了同一页面入口 |
 
 ### 3. 登录与注册
@@ -265,6 +267,7 @@ flowchart TD
 
 - 这是一个典型的 `router/layout/view/hook/api` 五层前端结构，业务定位优先找 `views` 与 `hook`。
 - `types` 是最大扇入层，说明全局类型定义集中且稳定。
+- 文章卡片相关组件（`list.vue`、`search.list.vue`、`meta.vue`）已统一改为“数据传入渲染”模式，`author` 与 `tags` 契约集中收敛在 `src/types/main.ts`。
 - 登录认证链路已从单请求模式演化为“本地滑块校验 + 后端验证码凭证 + 登录接口消费凭证”的双请求模式，定位时需同时检查 `views/login/index.vue` 与 `api/user/user.ts`。
 - `views -> hook -> api` 是最核心的业务追踪主链。
 - `layout` 与 `constants/ui/service` 共同承接导航、权限与壳层拼装。
