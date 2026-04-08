@@ -2,13 +2,13 @@ services:
   db:
     build:
       context: ./xs-blog-db/db
-    container_name: icu.xiaosong.blog.db
+    container_name: xs-blog-db
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-icu_xiaosong_blog}
-      POSTGRES_USER: ${POSTGRES_USER:-icu_xiaosong_blog_user}
+      POSTGRES_DB: ${POSTGRES_DB:-xs_blog}
+      POSTGRES_USER: ${POSTGRES_USER:-xs_blog_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
     ports:
-      - "${POSTGRES_PUBLISH_PORT:-5432}:5432"
+      - "${POSTGRES_PUBLISH_PORT:-28888}:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
@@ -24,7 +24,7 @@ services:
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-change_me_redis}
     ports:
-      - "${REDIS_PUBLISH_PORT:-6379}:6379"
+      - "${REDIS_PUBLISH_PORT:-27888}:6379"
     command: ["sh", "-c", "exec redis-server /usr/local/etc/redis/redis.conf --requirepass \"$REDIS_PASSWORD\""]
     volumes:
       - redis_data:/data
@@ -35,8 +35,8 @@ services:
     container_name: xs-blog-api
     environment:
       PYTHONPATH: /app
-      DATABASE_URL: ${DATABASE_URL:-postgresql://icu_xiaosong_blog_user:change_me@db:5432/icu_xiaosong_blog}
-      REDIS_URL: ${REDIS_URL:-redis://:change_me_redis@redis:6379/0}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-xs_blog_user}:${POSTGRES_PASSWORD:-change_me}@${POSTGRES_HOST:-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-xs_blog}}
+      REDIS_URL: ${REDIS_URL:-redis://:${REDIS_PASSWORD:-change_me_redis}@${REDIS_HOST:-redis}:${REDIS_PORT:-6379}/${REDIS_DB:-0}}
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_DB: ${REDIS_DB:-0}
       REDIS_HOST: ${REDIS_HOST:-redis}
@@ -47,9 +47,9 @@ services:
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-300}
       POSTGRES_HOST: ${POSTGRES_HOST:-db}
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
-      POSTGRES_USER: ${POSTGRES_USER:-icu_xiaosong_blog_user}
+      POSTGRES_USER: ${POSTGRES_USER:-xs_blog_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
-      POSTGRES_DB: ${POSTGRES_DB:-icu_xiaosong_blog}
+      POSTGRES_DB: ${POSTGRES_DB:-xs_blog}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-["http://localhost:5173","http://localhost"]}
       FILE_STORAGE_PATH: ${FILE_STORAGE_PATH:-./storage}
       EMAIL_HOST: ${EMAIL_HOST:-smtp.qq.com}
@@ -68,7 +68,7 @@ services:
       redis:
         condition: service_started
     ports:
-      - "${API_PUBLISH_PORT:-8000}:8000"
+      - "${API_PUBLISH_PORT:-26888}:8000"
     volumes:
       - ./xs-blog-server/app/storage:/app/storage
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
@@ -78,27 +78,27 @@ services:
       context: ./xs-blog-web
       args:
         VITE_API_REQUEST_MODE: ${VITE_API_REQUEST_MODE:-proxy}
-        VITE_STATIC_URL: ${VITE_STATIC_URL:-/static/}
+        VITE_STATIC_URL: ${VITE_STATIC_URL:-http://localhost:${API_PUBLISH_PORT:-26888}/static/}
         VITE_VDITOR_CDN: ${VITE_VDITOR_CDN:-/vditor}
         VITE_SITE_ICP: ${VITE_SITE_ICP:-}
         VITE_SITE_ICP_LINK: ${VITE_SITE_ICP_LINK:-}
         VITE_SITE_NAME: ${VITE_SITE_NAME:-xs-blog}
         VITE_GITHUB_REPO: ${VITE_GITHUB_REPO:-xs-blog}
         VITE_GITHUB_REPO_URL: ${VITE_GITHUB_REPO_URL:-https://github.com/your-name/xs-blog}
-        VITE_BACKEND_API_URL: ${VITE_BACKEND_API_URL:-}
-        VITE_BACKEND_BASE_URL: ${VITE_BACKEND_BASE_URL:-}
+        VITE_BACKEND_API_URL: ${VITE_BACKEND_API_URL:-http://localhost:${API_PUBLISH_PORT:-26888}/api}
+        VITE_BACKEND_BASE_URL: ${VITE_BACKEND_BASE_URL:-http://localhost:${API_PUBLISH_PORT:-26888}}
         VITE_BACKEND_STATIC: ${VITE_BACKEND_STATIC:-static}
     container_name: xs-blog-web
     depends_on:
       api:
         condition: service_started
     ports:
-      - "${WEB_PUBLISH_PORT:-12888}:80"
+      - "${WEB_PUBLISH_PORT:-25888}:80"
 
 volumes:
   pg_data:
-    name: xs-blog-base-pg-data
+    name: ${PG_DATA_VOLUME_NAME:-xs-blog-base-pg-data-dev}
   redis_data:
-    name: xs-blog-base-redis-data
+    name: ${REDIS_DATA_VOLUME_NAME:-xs-blog-base-redis-data-dev}
 
 
