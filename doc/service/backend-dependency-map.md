@@ -91,6 +91,7 @@ API 层扇出：
 - 通过 app/security/permissions.py 接入登录与管理员权限。
 - 异步接口会通过 app/db/deps.py 获取 AsyncSession。
 - 个别接口还会直接引用 app/core/exceptions.py。
+- 登录认证入口除 auth_service.py 外，现已额外依赖 captcha_token_service.py 与 schemas/login.py，形成“先签发验证码凭证，再消费凭证完成登录”的双阶段链路。
 
 API 层快速规律：
 
@@ -108,6 +109,7 @@ API 层快速规律：
 - article_bookmark_service.py
 - article_like_service.py
 - auth_service.py
+- captcha_token_service.py
 - comment_service.py
 - email_service.py
 - file_service.py
@@ -121,6 +123,7 @@ Service 层扇入：
 - 主要被 app/api/* 调用。
 - app/security/auth.py 还会反向依赖 user_service.py 获取当前用户。
 - user_service.py 会调用 email_service.py 完成验证码校验。
+- login.py 会额外调用 captcha_token_service.py 处理验证码凭证签发与一次性消费。
 
 Service 层扇出：
 
@@ -219,7 +222,7 @@ Utils：
 
 | 业务 | 第一入口 | 第二跳 | 第三跳 | 补充定位 |
 | --- | --- | --- | --- | --- |
-| 认证登录 | app/api/login.py | app/services/auth_service.py | app/repositories/user_repo.py | app/security/jwt.py、app/security/password.py |
+| 认证登录 | app/api/login.py | app/services/captcha_token_service.py、app/services/auth_service.py | app/repositories/user_repo.py | app/schemas/login.py、app/core/redis.py、app/security/jwt.py、app/security/password.py |
 | 用户注册与资料 | app/api/users.py | app/services/user_service.py | app/repositories/user_repo.py | app/services/email_service.py、app/security/password.py |
 | 文章管理 | app/api/article.py | app/services/article_service.py | app/repositories/article_repo.py、app/repositories/article_repo_async.py | app/schemas/article.py、app/models/article.py |
 | 公开发布文章 | app/api/publish.py | app/services/article_service.py | app/repositories/article_repo.py、app/repositories/article_repo_async.py | 这是文章域的公开读取入口 |
@@ -257,6 +260,7 @@ Utils：
 | 模块 | 扇入 | 扇出 |
 | --- | --- | --- |
 | app/services/article_service.py | app/api/article.py、app/api/publish.py | article_repo.py、article_repo_async.py、schemas/article.py、db/transaction.py、core/exceptions.py、utils/datetime_utils.py |
+| app/services/captcha_token_service.py | app/api/login.py | app/core/redis.py |
 | app/services/article_like_service.py | app/api/article.py | article_like_repo.py、article_repo_async.py |
 | app/services/article_bookmark_service.py | app/api/article.py | article_bookmark_repo.py、article_repo_async.py、core/exceptions.py |
 | app/services/comment_service.py | app/api/comment.py | comment_repo.py、article_repo_async.py、core/exceptions.py |

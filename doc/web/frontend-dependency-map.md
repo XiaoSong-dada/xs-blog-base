@@ -35,6 +35,8 @@ flowchart LR
     routerMain --> auth[src/service/auth.service.ts]
     http --> auth
     auth --> stores[src/stores/auth.ts]
+    loginView[src/views/login/index.vue] --> captchaLib[vue3-puzzle-vcode]
+    loginView --> userApi[src/api/user/user.ts]
 ```
 
 ## 路由分区
@@ -46,6 +48,8 @@ flowchart LR
 | 编辑区 | `/admin/article/new` `/admin/article/edit/:id` | `AppLayout -> AdminEditorLayout` | `views/admin/article/editor.vue` | 编辑器单独布局 |
 | 个人中心 | `/me` | `AppLayout -> MeLayout` | `views/me/*` | 个人资料、安全、收藏 |
 | 登录注册 | `/login` `/register` | 独立页面 | `views/login/*` | 用户认证入口 |
+
+补充：登录页现在采用“滑块成功 -> 请求验证码凭证 -> 携带凭证调用登录接口”的双阶段认证链路，而不是直接提交用户名密码。
 
 ## 模块规模
 
@@ -187,7 +191,9 @@ flowchart TD
 | 页面入口 | `src/views/login/index.vue`、`src/views/login/register.vue` |
 | 业务支撑 | `src/service/auth.service.ts` |
 | 接口资源 | `src/api/user/user.ts` |
-| 定位建议 | 认证问题通常是 `login/register view -> api/user -> AuthService -> store/http` 这条链 |
+| 关键外部依赖 | `vue3-puzzle-vcode` |
+| 关键类型 | `src/types/main.ts` 中的 `UserLoginData`、`UserCaptchaTokenData` |
+| 定位建议 | 认证问题现在通常是 `login view -> 滑块组件 -> issueCaptchaToken -> loginApi -> AuthService -> store/http` 这条链 |
 
 ### 4. 友情链接前台与后台
 
@@ -252,12 +258,14 @@ flowchart TD
 | 看业务路由分区 | `src/router/routes.ts` |
 | 看全局请求封装 | `src/utils/http.ts` |
 | 看登录态管理 | `src/service/auth.service.ts`、`src/stores/auth.ts` |
+| 看滑块登录链路 | `src/views/login/index.vue`、`src/api/user/user.ts`、`src/types/main.ts` |
 | 看菜单来源 | `src/constants/auth-menu.ts`、`src/constants/center-menu.ts`、`src/constants/me.menu.ts` |
 
 ## 快速结论
 
 - 这是一个典型的 `router/layout/view/hook/api` 五层前端结构，业务定位优先找 `views` 与 `hook`。
 - `types` 是最大扇入层，说明全局类型定义集中且稳定。
+- 登录认证链路已从单请求模式演化为“本地滑块校验 + 后端验证码凭证 + 登录接口消费凭证”的双请求模式，定位时需同时检查 `views/login/index.vue` 与 `api/user/user.ts`。
 - `views -> hook -> api` 是最核心的业务追踪主链。
 - `layout` 与 `constants/ui/service` 共同承接导航、权限与壳层拼装。
 - 如果只需要快速定位业务，不建议先读 `components`；先确认路由和页面，再下钻到对应 hook 即可。
