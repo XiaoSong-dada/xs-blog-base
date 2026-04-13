@@ -39,6 +39,7 @@ services:
         PIP_RETRIES: ${PIP_RETRIES:-10}
     container_name: xs-blog-api
     environment:
+      ENV: ${ENV:-production}
       PYTHONPATH: /app
       DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-xs_blog_user}:${POSTGRES_PASSWORD:-change_me}@${POSTGRES_HOST:-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-xs_blog}}
       REDIS_URL: ${REDIS_URL:-redis://:${REDIS_PASSWORD:-change_me_redis}@${REDIS_HOST:-redis}:${REDIS_PORT:-6379}/${REDIS_DB:-0}}
